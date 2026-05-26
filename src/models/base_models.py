@@ -1,7 +1,7 @@
 import datetime
 from typing import Annotated
 
-from sqlalchemy import Text, ForeignKey, Index, String, DateTime
+from sqlalchemy import Text, ForeignKey, Index, String, DateTime, text as sa_text
 from sqlalchemy.dialects.postgresql.json import JSONB
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
 
@@ -14,7 +14,7 @@ str_100 = Annotated[str, 100]
 
 intpk = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
 strpk = Annotated[str_80, mapped_column(primary_key=True)]
-text = Annotated[str, mapped_column(Text)]
+text_col = Annotated[str, mapped_column(Text)]
 
 
 class Base(DeclarativeBase):
@@ -38,10 +38,10 @@ class Player(Base):
     __tablename__ = "players"
 
     puuid: Mapped[strpk]
-    game_name: Mapped[text]
-    tag_line: Mapped[text]
+    game_name: Mapped[text_col]
+    tag_line: Mapped[text_col]
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        server_default=text("TIMEZONE('utc', now())")
+        server_default=sa_text("TIMEZONE('utc', now())")
     )
 
     __table_args__ = (Index("idx_game_name_tag_line", "game_name", "tag_line"),)
