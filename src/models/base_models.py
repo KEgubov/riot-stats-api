@@ -19,6 +19,7 @@ text = Annotated[str, mapped_column(Text)]
 
 class Base(DeclarativeBase):
     type_annotation_map = {
+        str_10: String(10),
         str_20: String(20),
         str_30: String(30),
         str_40: String(40),
@@ -39,13 +40,17 @@ class Player(Base):
     puuid: Mapped[strpk]
     game_name: Mapped[text]
     tag_line: Mapped[text]
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        server_default=text("TIMEZONE('utc', now())")
+    )
 
     __table_args__ = (Index("idx_game_name_tag_line", "game_name", "tag_line"),)
 
     match_stats: Mapped[list["MatchParticipant"]] = relationship(
-        back_populates="player"
+        back_populates="player", cascade="all, delete-orphan"
     )
+    leagues: Mapped[list["League"]] = relationship(back_populates="player",
+                                                   cascade="all, delete-orphan")
 
 
 class League(Base):
@@ -62,6 +67,8 @@ class League(Base):
     wins: Mapped[int]
     losses: Mapped[int]
 
+    player: Mapped["Player"] = relationship(back_populates="leagues")
+
 
 class Match(Base):
     __tablename__ = "matches"
@@ -69,6 +76,8 @@ class Match(Base):
     match_id: Mapped[str_40] = mapped_column(primary_key=True)
     game_version: Mapped[str_20]
     game_creation: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
+    game_start_timestamp: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
+    game_end_timestamp: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
     game_duration: Mapped[int]
 
     participants: Mapped[list["MatchParticipant"]] = relationship(
@@ -87,6 +96,17 @@ class MatchParticipant(Base):
         ForeignKey("players.puuid", ondelete="CASCADE"), index=True
     )
     champion_id: Mapped[int] = mapped_column(index=True)
+
+    # Financial metrics
+    gold_earned: Mapped[int]
+    gold_spent: Mapped[int]
+
+    # Damage metrics
+    total_damage_dealt: Mapped[int] # Total damage dealt (minions, monsters, structures, champions)
+    total_damage_taken: Mapped[int] # Total damage taken from all sources
+    total_dd_to_champions: Mapped[int] # Pure damage dealt to enemy champions
+
+    # Combat metrics
     win: Mapped[bool]
     kills: Mapped[int]
     deaths: Mapped[int]
