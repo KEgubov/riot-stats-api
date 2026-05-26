@@ -147,7 +147,4 @@ class RiotClient:
         data = await self._request("GET", url)
         if not data:
             return []
-        return [
-            RiotLeagueSchema.model_validate(entry)
-            for entry in data
-        ]
+        return [RiotLeagueSchema.model_validate(entry) for entry in data]

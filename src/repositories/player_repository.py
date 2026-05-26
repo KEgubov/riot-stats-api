@@ -16,30 +16,42 @@ class PlayerRepository:
         self.session = session
 
     async def get_by_riot_id(self, game_name: str, tag_line: str) -> Player | None:
-        stmt = select(Player).where(Player.game_name == game_name, Player.tag_line == tag_line)
+        stmt = select(Player).where(
+            Player.game_name == game_name, Player.tag_line == tag_line
+        )
         return await self.session.scalar(stmt)
 
     async def get_profile(self, puuid: str) -> Player | None:
-        stmt = select(Player).options(selectinload(Player.leagues)).where(Player.puuid == puuid)
+        stmt = (
+            select(Player)
+            .options(selectinload(Player.leagues))
+            .where(Player.puuid == puuid)
+        )
         return await self.session.scalar(stmt)
 
     async def upsert_player(self, puuid: str, game_name: str, tag_line: str) -> None:
-        stmt = insert(Player).values(
-            puuid=puuid,
-            game_name=game_name,
-            tag_line=tag_line,
-            updated_at=datetime.datetime.now(datetime.timezone.utc),
-        ).on_conflict_do_update(
-            index_elements=[Player.puuid],
-            set_={
-                "game_name": game_name,
-                "tag_line": tag_line,
-                "updated_at": datetime.datetime.now(datetime.timezone.utc),
-            },
+        stmt = (
+            insert(Player)
+            .values(
+                puuid=puuid,
+                game_name=game_name,
+                tag_line=tag_line,
+                updated_at=datetime.datetime.now(datetime.timezone.utc),
+            )
+            .on_conflict_do_update(
+                index_elements=[Player.puuid],
+                set_={
+                    "game_name": game_name,
+                    "tag_line": tag_line,
+                    "updated_at": datetime.datetime.now(datetime.timezone.utc),
+                },
+            )
         )
         await self.session.execute(stmt)
 
-    async def replace_leagues(self, puuid: str, leagues: list[RiotLeagueSchema]) -> None:
+    async def replace_leagues(
+        self, puuid: str, leagues: list[RiotLeagueSchema]
+    ) -> None:
         await self.session.execute(delete(League).where(League.puuid == puuid))
         for league in leagues:
             self.session.add(League(puuid=puuid, **league.model_dump()))
@@ -47,23 +59,35 @@ class PlayerRepository:
     async def existing_match_ids(self, match_ids: list[str]) -> set[str]:
         if not match_ids:
             return set()
-        rows = await self.session.scalars(select(Match.match_id).where(Match.match_id.in_(match_ids)))
+        rows = await self.session.scalars(
+            select(Match.match_id).where(Match.match_id.in_(match_ids))
+        )
         return set(rows.all())
 
     async def save_match(self, match: RiotMatchResponseSchema) -> None:
         info = match.info
-        self.session.add(Match(
-            match_id=match.match_id,
-            game_version=info.game_version,
-            game_creation=info.game_creation,
-            game_start_timestamp=info.game_start_timestamp,
-            game_end_timestamp=info.game_end_timestamp,
-            game_duration=info.game_duration,
-        ))
+        self.session.add(
+            Match(
+                match_id=match.match_id,
+                game_version=info.game_version,
+                game_creation=info.game_creation,
+                game_start_timestamp=info.game_start_timestamp,
+                game_end_timestamp=info.game_end_timestamp,
+                game_duration=info.game_duration,
+            )
+        )
         for p in info.participants:
-            self.session.add(MatchParticipant(match_id=match.match_id, raw_data=p.model_dump(mode="json", by_alias=True), **p.model_dump()))
+            self.session.add(
+                MatchParticipant(
+                    match_id=match.match_id,
+                    raw_data=p.model_dump(mode="json", by_alias=True),
+                    **p.model_dump(),
+                )
+            )
 
-    async def recent_matches_for_player(self, puuid: str, limit: int = 20) -> list[Match]:
+    async def recent_matches_for_player(
+        self, puuid: str, limit: int = 20
+    ) -> list[Match]:
         stmt = (
             select(Match)
             .join(MatchParticipant, MatchParticipant.match_id == Match.match_id)
@@ -80,7 +104,9 @@ class PlayerRepository:
             select(
                 MatchParticipant.champion_id,
                 func.count(MatchParticipant.id).label("games_played"),
-                (func.avg(func.cast(MatchParticipant.win, func.INTEGER)) * 100).label("win_rate"),
+                (func.avg(func.cast(MatchParticipant.win, func.INTEGER)) * 100).label(
+                    "win_rate"
+                ),
                 func.sum(MatchParticipant.kills).label("kills"),
                 func.sum(MatchParticipant.deaths).label("deaths"),
                 func.sum(MatchParticipant.assists).label("assists"),
