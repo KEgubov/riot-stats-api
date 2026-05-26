@@ -7,7 +7,10 @@ from pydantic.alias_generators import to_camel
 
 class RiotBaseModel(BaseModel):
     model_config = ConfigDict(
-        alias_generator=to_camel, populate_by_name=True, extra="ignore"
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="ignore",
+        from_attributes=True,
     )
 
 
@@ -39,6 +42,7 @@ class RiotParticipantSchema(RiotBaseModel):
     Player object from info.participants array in Match-V5
     """
 
+    puuid: str = Field(max_length=80)
     champion_id: int
 
     # Financial metrics
@@ -78,11 +82,24 @@ class RiotMatchInfoSchema(RiotBaseModel):
             return datetime.datetime.fromtimestamp(v / 1000, tz=datetime.timezone.utc)
         return v
 
+    @field_validator("game_version")
+    @classmethod
+    def normalize_version(cls, v: str) -> str:
+        """
+        Automatically turns '16.8.766.8562' into '16.8' when parsing JSON
+        :param v: str
+        :return str
+        """
+        if v and "." in v:
+            return ".".join(v.split(".")[:2])
+        return v
+
 
 class RiotMatchResponseSchema(RiotBaseModel):
     """
     Top-level endpoint response /lol/match/v5/matches/{matchId}
     """
+
     metadata: dict[str, Any]
     info: RiotMatchInfoSchema
 
