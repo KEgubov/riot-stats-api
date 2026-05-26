@@ -98,13 +98,13 @@ class RiotClient:
         :param tag_line: str
         :return: RiotAccountSchema
         """
-        safe_game_name = urllib.parse.unquote(game_name)
+        safe_game_name = urllib.parse.quote(game_name)
         safe_tag_line = urllib.parse.quote(tag_line)
         url = f"{self.EUROPE_URL}/riot/account/v1/accounts/by-riot-id/{safe_game_name}/{safe_tag_line}"
-        data = self._request("GET", url)
+        data = await self._request("GET", url)
         if not data:
             return None
-        return RiotAccountSchema.model_validate(data, from_attributes=True)
+        return RiotAccountSchema.model_validate(data)
 
     async def get_matches_by_puuid(
         self, puuid: str, start: int = 0, count: int = 20
@@ -148,6 +148,6 @@ class RiotClient:
         if not data:
             return []
         return [
-            RiotLeagueSchema.model_validate(entry, from_attributes=True)
+            RiotLeagueSchema.model_validate(entry)
             for entry in data
         ]
