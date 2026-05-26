@@ -3,11 +3,10 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
 class DBSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=BASE_DIR / ".env",
-        env_file_encoding='utf-8',
-        extra='ignore'
+        env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore"
     )
 
     DB_HOST: str
@@ -24,6 +23,5 @@ class DBSettings(BaseSettings):
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
-db_settings = DBSettings()
-print(db_settings.DATABASE_URL)
 
+db_settings = DBSettings()
