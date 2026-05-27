@@ -30,20 +30,23 @@ class PlayerRepository:
         return await self.session.scalar(stmt)
 
     async def upsert_player(self, puuid: str, game_name: str, tag_line: str) -> None:
+        updated_at_utc_naive = datetime.datetime.now(datetime.UTC).replace(
+            tzinfo=None)
+
         stmt = (
             insert(Player)
             .values(
                 puuid=puuid,
                 game_name=game_name,
                 tag_line=tag_line,
-                updated_at=datetime.datetime.now(datetime.timezone.utc),
+                updated_at=updated_at_utc_naive,
             )
             .on_conflict_do_update(
                 index_elements=[Player.puuid],
                 set_={
                     "game_name": game_name,
                     "tag_line": tag_line,
-                    "updated_at": datetime.datetime.now(datetime.timezone.utc),
+                    "updated_at": updated_at_utc_naive,
                 },
             )
         )
@@ -66,6 +69,28 @@ class PlayerRepository:
 
     async def save_match(self, match: RiotMatchResponseSchema) -> None:
         info = match.info
+
+        participant_puuids = {participant.puuid for participant in
+                              info.participants}
+        if participant_puuids:
+            placeholder_updated_at = datetime.datetime.now(
+                datetime.UTC).replace(tzinfo=None)
+            await self.session.execute(
+                insert(Player)
+                .values(
+                    [
+                        {
+                            "puuid": puuid,
+                            "game_name": "unknown",
+                            "tag_line": "unknown",
+                            "updated_at": placeholder_updated_at,
+                        }
+                        for puuid in participant_puuids
+                    ]
+                )
+                .on_conflict_do_nothing(index_elements=[Player.puuid])
+            )
+
         self.session.add(
             Match(
                 match_id=match.match_id,
