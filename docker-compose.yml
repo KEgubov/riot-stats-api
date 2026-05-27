@@ -1,31 +1,37 @@
+version: '3.8'
+
 services:
   db:
-    image: postgres:16
+    image: postgres:15-alpine
+    container_name: riot_postgres
+    restart: always
     environment:
-      POSTGRES_DB: riot
-      POSTGRES_USER: riot
-      POSTGRES_PASSWORD: riot
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U riot -d riot"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 3s
       timeout: 3s
-      retries: 20
-
-  migrate:
-    build: .
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file: .env
-    command: alembic -c alembic.ini upgrade head
+      retries: 5
 
   api:
     build: .
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    env_file: .env
+    container_name: riot_api
+    restart: always
     ports:
       - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
