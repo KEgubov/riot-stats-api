@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, cast, Integer
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -129,9 +129,8 @@ class PlayerRepository:
             select(
                 MatchParticipant.champion_id,
                 func.count(MatchParticipant.id).label("games_played"),
-                (func.avg(func.cast(MatchParticipant.win, func.INTEGER)) * 100).label(
-                    "win_rate"
-                ),
+                (func.avg(cast(MatchParticipant.win, Integer)) * 100).label(
+                    "win_rate"),
                 func.sum(MatchParticipant.kills).label("kills"),
                 func.sum(MatchParticipant.deaths).label("deaths"),
                 func.sum(MatchParticipant.assists).label("assists"),
