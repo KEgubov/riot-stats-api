@@ -77,7 +77,7 @@ class ChampionAggregateResponse(BaseAPIModel):
     """
 
     champion_id: int = Field(description="Champion ID")
-    games_played: int = Field(..., description="Total games played")
+    games_played: int = Field(description="Total games played")
     win_rate: float = Field(description="Win percentage (from 0.0 to 100.0)")
     kda: float = Field(description="KDA Rate ((Kills + Assists) Deaths)")
 
@@ -86,3 +86,12 @@ class ChampionAggregateResponse(BaseAPIModel):
     avg_deaths: float
     avg_assists: float
     avg_gold: float
+
+
+class SyncAcceptedResponse(BaseModel):
+    """
+    Sync Accepted player statistics
+    """
+    message: str
+    game_name: str
+    tag_line: str
