@@ -1,17 +1,25 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+from src.api.exception_handlers import register_exception_handlers
 from src.api.routes import router
 from src.clients.riot_client import RiotClient
 
-app = FastAPI(title='Riot Stats API')
-app.include_router(router)
-
 riot_client = RiotClient()
 
-@app.on_event('startup')
-async def startup() -> None:
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Starting up: connecting to Riot API Client...")
     await riot_client.connect()
 
-@app.on_event('shutdown')
-async def shutdown() -> None:
+    yield
+
+    print("Shutting down: disconnecting Riot API Client...")
     await riot_client.disconnect()
+
+
+app = FastAPI(title="Riot Stats API", lifespan=lifespan)
+
+app.include_router(router)
+register_exception_handlers(app)
