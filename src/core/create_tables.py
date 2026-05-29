@@ -5,9 +5,9 @@ from src.models.base_models import Base
 
 async def create_tables() -> None:
     """
-    Функция создаёт таблицы в базе данных.
-    Если необходимо пересоздать текущие таблицы,
-    то можно сначала использовать drop all
+    The function creates tables in the database.
+    If you need to recreate the current tables,
+    then you can use drop all first
     :return: None
     """
     async with async_engine.begin() as conn:
